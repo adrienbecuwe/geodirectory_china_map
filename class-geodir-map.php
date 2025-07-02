@@ -1427,7 +1427,11 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 	 * @return array Modified response with converted coordinates.
 	 */
 	public static function filter_rest_marker_for_chinese_maps( $response, $item, $request ) {
+		// Always log when this filter is called
+		error_log( '🔍 GeoDir REST API filter called with response: ' . json_encode( $response ) );
+		
 		if ( ! self::needs_coordinate_conversion() || empty( $response ) ) {
+			error_log( '🔍 GeoDir REST API: Skipping conversion - needs_conversion: ' . ( self::needs_coordinate_conversion() ? 'true' : 'false' ) . ', response empty: ' . ( empty( $response ) ? 'true' : 'false' ) );
 			return $response;
 		}
 		
@@ -1442,17 +1446,17 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 			$response['ln'] = $converted['lng'];
 			
 			// Debug logging for troubleshooting
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf( 
-					'🚀 GeoDir REST API: Converted cluster marker %s from %f,%f to %f,%f for %s', 
-					$response['m'] ?? 'unknown', 
-					$original_lat, 
-					$original_lng, 
-					$converted['lat'], 
-					$converted['lng'],
-					self::active_map()
-				) );
-			}
+			error_log( sprintf( 
+				'🚀 GeoDir REST API: Converted cluster marker %s from %f,%f to %f,%f for %s', 
+				$response['m'] ?? 'unknown', 
+				$original_lat, 
+				$original_lng, 
+				$converted['lat'], 
+				$converted['lng'],
+				self::active_map()
+			) );
+		} else {
+			error_log( '🔍 GeoDir REST API: No lt/ln fields found in response: ' . json_encode( array_keys( $response ) ) );
 		}
 		
 		return $response;

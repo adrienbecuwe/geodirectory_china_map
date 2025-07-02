@@ -439,7 +439,7 @@ function geodir_chinese_maps_frontend_debug() {
                 var tileOptions = {};
                 
                 <?php if ( $active_map === 'baidu' ) : ?>
-                tileUrl = 'http://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+                tileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
                 tileOptions = {
                     subdomains: ['1', '2', '3', '4'],
                     attribution: '© AutoNavi | Baidu Style',
@@ -450,7 +450,7 @@ function geodir_chinese_maps_frontend_debug() {
                 console.log('🔧 Tile URL pattern:', tileUrl);
                 console.log('🔧 Subdomains:', tileOptions.subdomains);
                 <?php elseif ( $active_map === 'amap' ) : ?>
-                tileUrl = 'http://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+                tileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
                 tileOptions = {
                     subdomains: ['1', '2', '3', '4'],
                     attribution: '© AutoNavi | AMap Style',
@@ -851,7 +851,7 @@ function geodir_chinese_maps_reset_button() {
                     var tileOptions = {};
                     
                     <?php if ( $active_map === 'baidu' ) : ?>
-                    tileUrl = 'http://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+                    tileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
                     tileOptions = {
                         subdomains: ['1', '2', '3', '4'],
                         attribution: '© AutoNavi | Baidu Style',
@@ -862,7 +862,7 @@ function geodir_chinese_maps_reset_button() {
                     console.log('🔧 Backend Tile URL:', tileUrl);
                     console.log('🔧 Backend Subdomains:', tileOptions.subdomains);
                     <?php elseif ( $active_map === 'amap' ) : ?>
-                    tileUrl = 'http://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+                    tileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
                     tileOptions = {
                         subdomains: ['1', '2', '3', '4'],
                         attribution: '© AutoNavi | AMap Style',
