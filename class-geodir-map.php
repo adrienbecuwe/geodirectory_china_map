@@ -48,6 +48,9 @@ class GeoDir_Maps {
 		add_filter( 'geodir_ajax_output', array( $this, 'filter_ajax_output' ), 10, 1 );
 		add_filter( 'wp_send_json_success', array( $this, 'filter_json_success' ), 10, 1 );
 		
+		// 🔥 CRITICAL: Hook into REST API marker response for cluster/archive maps
+		add_filter( 'geodir_rest_prepare_marker', array( $this, 'filter_rest_marker_for_chinese_maps' ), 10, 3 );
+		
 		// Add hooks for map center coordinates conversion
 		add_filter( 'geodir_map_center_lat', array( $this, 'maybe_convert_center_lat' ), 10, 2 );
 		add_filter( 'geodir_map_center_lng', array( $this, 'maybe_convert_center_lng' ), 10, 2 );
@@ -1401,6 +1404,50 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 	}
 
 	/**
+	 * Filter REST API marker response for Chinese map coordinate conversion.
+	 * This is the CRITICAL fix for cluster/archive map markers.
+	 *
+	 * @since 2.0.0
+	 * @package GeoDirectory
+	 *
+	 * @param array $response The marker response data.
+	 * @param object $item The original marker item from database.
+	 * @param WP_REST_Request $request The REST request object.
+	 * @return array Modified response with converted coordinates.
+	 */
+	public static function filter_rest_marker_for_chinese_maps( $response, $item, $request ) {
+		if ( ! self::needs_coordinate_conversion() || empty( $response ) ) {
+			return $response;
+		}
+		
+		// Convert 'lt' (latitude) and 'ln' (longitude) fields used by REST API
+		if ( isset( $response['lt'] ) && isset( $response['ln'] ) ) {
+			$original_lat = (float) $response['lt'];
+			$original_lng = (float) $response['ln'];
+			
+			// Apply WGS84 to GCJ-02 conversion using exact Flutter algorithm
+			$converted = self::convert_wgs84_to_gcj02( $original_lat, $original_lng );
+			$response['lt'] = $converted['lat'];
+			$response['ln'] = $converted['lng'];
+			
+			// Debug logging for troubleshooting
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( 
+					'🚀 GeoDir REST API: Converted cluster marker %s from %f,%f to %f,%f for %s', 
+					$response['m'] ?? 'unknown', 
+					$original_lat, 
+					$original_lng, 
+					$converted['lat'], 
+					$converted['lng'],
+					self::active_map()
+				) );
+			}
+		}
+		
+		return $response;
+	}
+
+	/**
 	 * Check if current map provider needs coordinate conversion.
 	 *
 	 * @since 2.0.0
@@ -1455,7 +1502,7 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 			}
 			
 			if (outOfChina(lat, lng)) {
-				return {lat: parseFloat(lat), lng: parseFloat(lng)};
+				return {lat: parseFloat(lat), lng: parse
 			}
 			
 			// Transform functions (exact Flutter logic)
