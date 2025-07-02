@@ -307,10 +307,21 @@ if (!(window.google && typeof google.maps !== 'undefined') && !(window.AMap && t
 	}
 
 	/**
-	 * Function for get default marker icon.
+	 * Returns the default marker icon.
 	 *
-	 * @since 2.0.0
+	 * @since 1.0.0
+	 * @package GeoDirectory
 	 *
+	 * @param bool $full_path Optional. Default marker icon full path. Default false.
+	 * @return string $icon.
+	 */
+	public static function default_marker_icon( $full_path = false ) {
+		$icon = geodir_get_option( 'map_default_marker_icon' );
+
+		if ( ! empty( $icon ) && (int) $icon > 0 ) {
+			$icon = wp_get_attachment_url( $icon );
+		}
+
 		if ( ! $icon ) {
 			$icon = geodir_file_relative_url( GEODIRECTORY_PLUGIN_URL . '/assets/images/pin.png' );
 			geodir_update_option( 'map_default_marker_icon', $icon );
@@ -2618,99 +2629,6 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 		window.geodir_needs_conversion = true;
 		</script>
 		<?php
-	}
-
-	/**
-	 * Returns the default marker icon.
-	 *
-	 * @since 1.0.0
-	 * @package GeoDirectory
-	 *
-	 * @param bool $full_path Optional. Default marker icon full path. Default false.
-	 * @return string $icon.
-	 */
-	public static function default_marker_icon( $full_path = false ) {
-		$icon = geodir_get_option( 'map_default_marker_icon' );
-
-		if ( ! empty( $icon ) && (int) $icon > 0 ) {
-			$icon = wp_get_attachment_url( $icon );
-		}
-
-		if ( ! $icon ) {
-			$icon = geodir_file_relative_url( GEODIRECTORY_PLUGIN_URL . '/assets/images/pin.png' );
-			geodir_update_option( 'map_default_marker_icon', $icon );
-		}
-
-		$icon = geodir_file_relative_url( $icon, $full_path );
-
-		return apply_filters( 'geodir_default_marker_icon', $icon, $full_path );
-	}
-
-	/**
-	 * Get marker icon size.
-	 *
-	 * @since 1.0.0
-	 * @package GeoDirectory
-	 *
-	 * @param string $icon Marker icon url.
-	 * @param array $default_size Default icon size.
-	 * @return array The icon size.
-	 */
-	public static function get_marker_size( $icon, $default_size = array( 'w' => 36, 'h' => 45 ) ) {
-		global $gd_marker_sizes;
-
-		if ( empty( $gd_marker_sizes ) ) {
-			$gd_marker_sizes = array();
-		}
-
-		if ( ! empty( $gd_marker_sizes[ $icon ] ) ) {
-			return $gd_marker_sizes[ $icon ];
-		}
-
-		if ( empty( $icon ) ) {
-			$gd_marker_sizes[ $icon ] = $default_size;
-			return $default_size;
-		}
-
-		$icon_url = $icon;
-
-		if ( ! path_is_absolute( $icon ) ) {
-			$uploads = wp_upload_dir();
-			$icon = str_replace( $uploads['baseurl'], $uploads['basedir'], $icon );
-		}
-
-		if ( ! path_is_absolute( $icon ) && strpos( $icon, WP_CONTENT_URL ) !== false ) {
-			$icon = str_replace( WP_CONTENT_URL, WP_CONTENT_DIR, $icon );
-		}
-
-		$sizes = array();
-		if ( is_file( $icon ) && file_exists( $icon ) ) {
-			$size = function_exists( 'wp_getimagesize' ) ? wp_getimagesize( trim( $icon ) ) : @getimagesize( trim( $icon ) );
-
-			// Check for .svg image
-			if ( empty( $size ) && preg_match( '/\.svg$/i', $icon ) ) {
-				if ( ( $xml = simplexml_load_file( $icon ) ) !== false ) {
-					$attributes = $xml->attributes();
-
-					if ( ! empty( $attributes ) && isset( $attributes->viewBox ) ) {
-						$viewbox = explode( ' ', $attributes->viewBox );
-
-						$size = array();
-						$size[0] = isset( $attributes->width ) && preg_match( '/\d+/', $attributes->width, $value ) ? (int) $value[0] : ( count( $viewbox ) == 4 ? (int) trim( $viewbox[2] ) : 0 );
-						$size[1] = isset( $attributes->height ) && preg_match( '/\d+/', $attributes->height, $value ) ? (int) $value[0] : ( count( $viewbox ) == 4 ? (int) trim( $viewbox[3] ) : 0 );
-					}
-				}
-			}
-
-			if ( ! empty( $size[0] ) && ! empty( $size[1] ) ) {
-				$sizes = array( 'w' => $size[0], 'h' => $size[1] );
-			}
-		}
-
-		$sizes = ! empty( $sizes ) ? $sizes : $default_size;
-		$gd_marker_sizes[ $icon_url ] = $sizes;
-
-		return apply_filters( 'geodir_get_marker_size', $sizes, $icon_url, $default_size );
 	}
 }
 
