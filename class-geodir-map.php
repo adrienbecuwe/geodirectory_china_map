@@ -4,7 +4,7 @@
  *
  * Adds Chinese map provider support to GeoDirectory.
  *
- * @class     GeoDir_Chinese_Maps
+ * @class     GeoDir_Maps
  * @since     1.0.0
  * @package   GeoDirectoryChineseMaps
  * @category  Class
@@ -16,12 +16,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * GeoDir_Chinese_Maps Class.
+ * GeoDir_Maps Class.
  * 
  * This class extends GeoDirectory functionality to support Chinese map providers
- * like Amap, Baidu, Tencent, etc. It works alongside the original GeoDir_Maps class.
+ * like Amap, Baidu, Tencent, etc. It replaces the original GeoDir_Maps class.
  */
-class GeoDir_Chinese_Maps {
+class GeoDir_Maps {
 
 	public function __construct() {
 		// Add hooks for Chinese map coordinate conversion
@@ -2531,4 +2531,4 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 	}
 }
 
-return new GeoDir_Chinese_Maps();
+return new GeoDir_Maps();
