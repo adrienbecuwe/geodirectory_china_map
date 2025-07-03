@@ -1,14 +1,14 @@
 <?php
 /**
- * Maps
+ * Chinese Maps Extension for GeoDirectory
  *
- * Setup GD maps.
+ * Adds Chinese map provider support to GeoDirectory.
  *
- * @class     GeoDir_Maps
- * @since     2.0.0
- * @package   GeoDirectory
+ * @class     GeoDir_Chinese_Maps
+ * @since     1.0.0
+ * @package   GeoDirectoryChineseMaps
  * @category  Class
- * @author    AyeCode
+ * @author    Custom
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,9 +16,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * GeoDir_Maps Class.
+ * GeoDir_Chinese_Maps Class.
+ * 
+ * This class extends GeoDirectory functionality to support Chinese map providers
+ * like Amap, Baidu, Tencent, etc. It works alongside the original GeoDir_Maps class.
  */
-class GeoDir_Maps {
+class GeoDir_Chinese_Maps {
 
 	public function __construct() {
 		// Add hooks for Chinese map coordinate conversion
@@ -47,9 +50,6 @@ class GeoDir_Maps {
 		// Hook into JSON output filters
 		add_filter( 'geodir_ajax_output', array( $this, 'filter_ajax_output' ), 10, 1 );
 		add_filter( 'wp_send_json_success', array( $this, 'filter_json_success' ), 10, 1 );
-		
-		// 🔥 CRITICAL: Hook into REST API marker response for cluster/archive maps
-		add_filter( 'geodir_rest_prepare_marker', array( $this, 'filter_rest_marker_for_chinese_maps' ), 10, 3 );
 		
 		// Add hooks for map center coordinates conversion
 		add_filter( 'geodir_map_center_lat', array( $this, 'maybe_convert_center_lat' ), 10, 2 );
@@ -93,15 +93,39 @@ class GeoDir_Maps {
 	}
 
 	/**
-	 * Get the marker icon size.
-	 * This will return width and height of icon in array (ex: w => 36, h => 45).
+	 * Get the default marker icon.
+	 * 
+	 * This method ensures compatibility with GeoDirectory core
+	 * that expects GeoDir_Maps::default_marker_icon() to exist.
 	 *
-	 * @since 1.6.1
-	 * @package GeoDirectory
-	 *
-	 * @global $gd_marker_sizes Array of the marker icons sizes.
+	 * @param bool $full_path Optional. Default marker icon full path. Default false.
+	 * @return string $icon.
+	 */
+	public static function default_marker_icon( $full_path = false ) {
+		$icon = geodir_get_option( 'map_default_marker_icon' );
+
+		if ( ! empty( $icon ) && (int) $icon > 0 ) {
+			$icon = wp_get_attachment_url( $icon );
+		}
+
+		if ( ! $icon ) {
+			$icon = geodir_file_relative_url( GEODIRECTORY_PLUGIN_URL . '/assets/images/pin.png' );
+			geodir_update_option( 'map_default_marker_icon', $icon );
+		}
+
+		$icon = geodir_file_relative_url( $icon, $full_path );
+
+		return apply_filters( 'geodir_default_marker_icon', $icon, $full_path );
+	}
+
+	/**
+	 * Get marker icon size.
+	 * 
+	 * This method ensures compatibility with GeoDirectory core
+	 * that expects GeoDir_Maps::get_marker_size() to exist.
 	 *
 	 * @param string $icon Marker icon url.
+	 * @param array $default_size Default marker size.
 	 * @return array The icon size.
 	 */
 	public static function get_marker_size( $icon, $default_size = array( 'w' => 36, 'h' => 45 ) ) {
@@ -117,15 +141,13 @@ class GeoDir_Maps {
 
 		if ( empty( $icon ) ) {
 			$gd_marker_sizes[ $icon ] = $default_size;
-
 			return $default_size;
 		}
 
 		$icon_url = $icon;
 
 		if ( ! path_is_absolute( $icon ) ) {
-			$uploads = wp_upload_dir(); // Array of key => value pairs
-
+			$uploads = wp_upload_dir();
 			$icon = str_replace( $uploads['baseurl'], $uploads['basedir'], $icon );
 		}
 
@@ -141,25 +163,23 @@ class GeoDir_Maps {
 			if ( empty( $size ) && preg_match( '/\.svg$/i', $icon ) ) {
 				if ( ( $xml = simplexml_load_file( $icon ) ) !== false ) {
 					$attributes = $xml->attributes();
-
-					if ( ! empty( $attributes ) && isset( $attributes->viewBox ) ) {
-						$viewbox = explode( ' ', $attributes->viewBox );
-
-						$size = array();
-						$size[0] = isset( $attributes->width ) && preg_match( '/\d+/', $attributes->width, $value ) ? (int) $value[0] : ( count( $viewbox ) == 4 ? (int) trim( $viewbox[2] ) : 0 );
-						$size[1] = isset( $attributes->height ) && preg_match( '/\d+/', $attributes->height, $value ) ? (int) $value[0] : ( count( $viewbox ) == 4 ? (int) trim( $viewbox[3] ) : 0 );
+					if ( ! empty( $attributes->width ) && ! empty( $attributes->height ) ) {
+						$size = array( (int) $attributes->width, (int) $attributes->height );
 					}
 				}
 			}
 
-			if ( ! empty( $size[0] ) && ! empty( $size[1] ) ) {
-				$sizes = array( 'w' => $size[0], 'h' => $size[1] );
+			if ( ! empty( $size ) && is_array( $size ) && ! empty( $size[0] ) && ! empty( $size[1] ) ) {
+				$sizes['w'] = $size[0];
+				$sizes['h'] = $size[1];
 			}
 		}
 
-		$sizes = ! empty( $sizes ) ? $sizes : $default_size;
+		if ( empty( $sizes ) ) {
+			$sizes = $default_size;
+		}
 
-		$gd_marker_sizes[ $icon_url ] = $sizes;
+		$gd_marker_sizes[ $icon ] = $sizes;
 
 		return $sizes;
 	}
@@ -307,21 +327,10 @@ if (!(window.google && typeof google.maps !== 'undefined') && !(window.AMap && t
 	}
 
 	/**
-	 * Returns the default marker icon.
+	 * Function for get default marker icon.
 	 *
-	 * @since 1.0.0
-	 * @package GeoDirectory
+	 * @since 2.0.0
 	 *
-	 * @param bool $full_path Optional. Default marker icon full path. Default false.
-	 * @return string $icon.
-	 */
-	public static function default_marker_icon( $full_path = false ) {
-		$icon = geodir_get_option( 'map_default_marker_icon' );
-
-		if ( ! empty( $icon ) && (int) $icon > 0 ) {
-			$icon = wp_get_attachment_url( $icon );
-		}
-
 		if ( ! $icon ) {
 			$icon = geodir_file_relative_url( GEODIRECTORY_PLUGIN_URL . '/assets/images/pin.png' );
 			geodir_update_option( 'map_default_marker_icon', $icon );
@@ -1080,7 +1089,7 @@ if (!(window.google && typeof google.maps !== 'undefined') && !(window.AMap && t
 	public static function check_map_script() {
 		global $geodir_map_script;
 
-		if ( ! $geodir_map_script && geodir_lazy_load_map() && GeoDir_Maps::active_map() !='none' && ! wp_script_is( 'geodir-map', 'enqueued' ) ) {
+		if ( ! $geodir_map_script && geodir_lazy_load_map() && self::active_map() !='none' && ! wp_script_is( 'geodir-map', 'enqueued' ) ) {
 			$geodir_map_script = true;
 			$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 			$active_map = self::active_map();
@@ -1415,54 +1424,6 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 	}
 
 	/**
-	 * Filter REST API marker response for Chinese map coordinate conversion.
-	 * This is the CRITICAL fix for cluster/archive map markers.
-	 *
-	 * @since 2.0.0
-	 * @package GeoDirectory
-	 *
-	 * @param array $response The marker response data.
-	 * @param object $item The original marker item from database.
-	 * @param WP_REST_Request $request The REST request object.
-	 * @return array Modified response with converted coordinates.
-	 */
-	public static function filter_rest_marker_for_chinese_maps( $response, $item, $request ) {
-		// Always log when this filter is called
-		error_log( '🔍 GeoDir REST API filter called with response: ' . json_encode( $response ) );
-		
-		if ( ! self::needs_coordinate_conversion() || empty( $response ) ) {
-			error_log( '🔍 GeoDir REST API: Skipping conversion - needs_conversion: ' . ( self::needs_coordinate_conversion() ? 'true' : 'false' ) . ', response empty: ' . ( empty( $response ) ? 'true' : 'false' ) );
-			return $response;
-		}
-		
-		// Convert 'lt' (latitude) and 'ln' (longitude) fields used by REST API
-		if ( isset( $response['lt'] ) && isset( $response['ln'] ) ) {
-			$original_lat = (float) $response['lt'];
-			$original_lng = (float) $response['ln'];
-			
-			// Apply WGS84 to GCJ-02 conversion using exact Flutter algorithm
-			$converted = self::convert_wgs84_to_gcj02( $original_lat, $original_lng );
-			$response['lt'] = $converted['lat'];
-			$response['ln'] = $converted['lng'];
-			
-			// Debug logging for troubleshooting
-			error_log( sprintf( 
-				'🚀 GeoDir REST API: Converted cluster marker %s from %f,%f to %f,%f for %s', 
-				$response['m'] ?? 'unknown', 
-				$original_lat, 
-				$original_lng, 
-				$converted['lat'], 
-				$converted['lng'],
-				self::active_map()
-			) );
-		} else {
-			error_log( '🔍 GeoDir REST API: No lt/ln fields found in response: ' . json_encode( array_keys( $response ) ) );
-		}
-		
-		return $response;
-	}
-
-	/**
 	 * Check if current map provider needs coordinate conversion.
 	 *
 	 * @since 2.0.0
@@ -1511,13 +1472,14 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 				return {lat: parseFloat(lat), lng: parseFloat(lng)};
 			}
 			
+					
 			// Check if outside China (exact Flutter logic)
 			function outOfChina(lat, lon) {
 				return (lon < 72.004 || lon > 137.8347) || (lat < 0.8293 || lat > 55.8271);
 			}
 			
 			if (outOfChina(lat, lng)) {
-				return {lat: parseFloat(lat), lng: parse
+				return {lat: parseFloat(lat), lng: parseFloat(lng)};
 			}
 			
 			// Transform functions (exact Flutter logic)
@@ -2030,73 +1992,6 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 			
 			if (outOfChina(lat, lng)) {
 				console.log('🌍 Admin: Coordinates outside China, no conversion needed:', lat, lng);
-				return {lat: parseFloat(lat), lng: parseFloat(lng)};
-			}
-			
-			// Transform functions (exact Flutter logic)
-			function transformLat(x, y) {
-				var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
-				ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-				ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
-				ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
-				return ret;
-			}
-			
-			function transformLon(x, y) {
-				var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
-				ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-				ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
-				ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
-				return ret;
-			}
-			
-			// Exact Flutter/Dart algorithm
-			var a = 6378245.0;
-			var ee = 0.00669342162296594323;
-			
-			var dLat = transformLat(lng - 105.0, lat - 35.0);
-			var dLon = transformLon(lng - 105.0, lat - 35.0);
-			
-			var radLat = lat / 180.0 * Math.PI;
-			var magic = Math.sin(radLat);
-			magic = 1 - ee * magic * magic;
-			var sqrtMagic = Math.sqrt(magic);
-			
-			dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
-			dLon = (dLon * 180.0) / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
-			
-			var mgLat = lat + dLat;
-			var mgLon = lng + dLon;
-			
-			console.log('🔄 Admin: Converting WGS84→GCJ-02:', lat.toFixed(6), lng.toFixed(6), '→', mgLat.toFixed(6), mgLon.toFixed(6));
-			
-			return {
-				lat: parseFloat(mgLat.toFixed(6)),
-				lng: parseFloat(mgLon.toFixed(6))
-			};
-		};
-		
-		// Reverse conversion (approximate) for when user moves marker
-		window.geodir_convert_coordinates_reverse = function(lat, lng) {
-			console.log('🔍 Admin reverse conversion called with:', lat, lng);
-			
-			if (typeof lat === 'undefined' || typeof lng === 'undefined' || lat === '' || lng === '') {
-				return {lat: lat, lng: lng};
-			}
-			
-			var needsConversion = <?php echo in_array( $active_map, array( 'amap', 'baidu', 'tencent', 'tianditu' ) ) ? 'true' : 'false'; ?>;
-			if (!needsConversion) {
-				console.log('🌍 Admin Reverse: Using WGS84 coordinates (no conversion needed):', lat, lng);
-				return {lat: parseFloat(lat), lng: parseFloat(lng)};
-			}
-			
-			// Check if outside China (exact Flutter logic)
-			function outOfChina(lat, lon) {
-				return (lon < 72.004 || lon > 137.8347) || (lat < 0.8293 || lat > 55.8271);
-			}
-			
-			if (outOfChina(lat, lng)) {
-				console.log('🌍 Admin Reverse: Coordinates outside China, no conversion needed:', lat, lng);
 				return {lat: parseFloat(lat), lng: parseFloat(lng)};
 			}
 			
@@ -2636,4 +2531,4 @@ console.log('Loading Leaflet CSS for <?php echo esc_js( $active_map ); ?>');
 	}
 }
 
-return new GeoDir_Maps();
+return new GeoDir_Chinese_Maps();

@@ -24,8 +24,7 @@ This project adds robust support for Chinese map providers (Amap, Baidu, Tencent
 ### 4. Comprehensive Marker Support
 - **PHP Hooks**: 10+ filter hooks to catch all marker data sources
 - **JavaScript Interception**: Real-time AJAX marker conversion
-- **REST API Conversion**: Critical fix for cluster/archive maps via `geodir_rest_prepare_marker` filter
-- **Multiple Formats**: Handles lat/lng, latitude/longitude, position objects, REST API lt/ln fields
+- **Multiple Formats**: Handles lat/lng, latitude/longitude, position objects
 - **Debug Logging**: Detailed console output for troubleshooting
 
 ## Technical Implementation
@@ -41,14 +40,6 @@ private function wgs84_to_gcj02($lat, $lng) {
 add_filter('geodir_ajax_map_markers', array($this, 'filter_markers_for_amap'), 10, 1);
 add_filter('geodir_cluster_markers', array($this, 'filter_markers_for_amap'), 10, 1);
 // ... 8 more hooks for complete coverage
-
-// CRITICAL: REST API marker conversion for cluster/archive maps
-add_filter('geodir_rest_prepare_marker', array($this, 'filter_rest_marker_for_chinese_maps'), 10, 3);
-
-public static function filter_rest_marker_for_chinese_maps($response, $item, $request) {
-    // Convert 'lt' and 'ln' fields in REST API responses
-    // This fixes cluster/archive maps showing no markers
-}
 
 // Improved admin marker drag with iterative reverse conversion
 private function gcj02_to_wgs84_iterative($gcj_lat, $gcj_lng) {

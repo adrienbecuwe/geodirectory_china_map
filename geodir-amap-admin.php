@@ -279,31 +279,6 @@ function geodir_chinese_maps_frontend_debug() {
         console.log('=== Chinese Maps Frontend Init ===');
         console.log('Active map provider:', '<?php echo esc_js( $active_map ); ?>');
         
-        // 🔍 DEBUG: Check if map variables are set properly
-        console.log('=== GeoDirectory Map Debug Info ===');
-        if (typeof window.gd_map_canvas_archive !== 'undefined') {
-            console.log('✅ Archive map variable exists');
-            console.log('📍 map_markers_ajax_url:', window.gd_map_canvas_archive.map_markers_ajax_url);
-            console.log('📍 Full map config:', window.gd_map_canvas_archive);
-        } else {
-            console.log('❌ Archive map variable NOT found');
-            console.log('Available map variables:', Object.keys(window).filter(key => key.includes('gd_map')));
-        }
-        
-        // Debug marker AJAX requests
-        $(document).ajaxSend(function(event, xhr, settings) {
-            if (settings.url && settings.url.includes('geodir') && settings.url.includes('markers')) {
-                console.log('🚀 Making marker AJAX request to:', settings.url);
-            }
-        });
-        
-        $(document).ajaxComplete(function(event, xhr, settings) {
-            if (settings.url && settings.url.includes('geodir') && settings.url.includes('markers')) {
-                console.log('✅ Marker AJAX response:', xhr.responseText ? JSON.parse(xhr.responseText) : 'No response');
-            }
-        });
-        console.log('=== End Debug Info ===');
-        
         // Global variables to prevent infinite loops
         window.geodir_frontend_init_attempts = window.geodir_frontend_init_attempts || 0;
         window.geodir_max_init_attempts = 15;
@@ -699,40 +674,6 @@ function geodir_chinese_maps_frontend_debug() {
             console.log('Map callback triggered:', e.type);
         });
         <?php endif; ?>
-        
-        // Debugging info for marker loading issues
-        console.log('=== GeoDirectory Map Debug Info ===');
-    
-        // Check if map variables are set
-        if (typeof window.gd_map_canvas_archive !== 'undefined') {
-            console.log('✅ Archive map variable exists');
-            console.log('📍 map_markers_ajax_url:', window.gd_map_canvas_archive.map_markers_ajax_url);
-            console.log('📍 Full map config:', window.gd_map_canvas_archive);
-        } else {
-            console.log('❌ Archive map variable NOT found');
-            console.log('Available map variables:', Object.keys(window).filter(key => key.includes('gd_map')));
-        }
-    
-        // Check for cluster map specific variable
-        if (typeof window.gd_map_canvas_cluster !== 'undefined') {
-            console.log('✅ Cluster map variable exists');
-            console.log('📍 cluster map_markers_ajax_url:', window.gd_map_canvas_cluster.map_markers_ajax_url);
-        }
-    
-        // Debug marker AJAX requests
-        jQuery(document).ajaxSend(function(event, xhr, settings) {
-            if (settings.url && settings.url.includes('geodir') && settings.url.includes('markers')) {
-                console.log('🚀 Making marker AJAX request to:', settings.url);
-            }
-        });
-    
-        jQuery(document).ajaxComplete(function(event, xhr, settings) {
-            if (settings.url && settings.url.includes('geodir') && settings.url.includes('markers')) {
-                console.log('✅ Marker AJAX response:', xhr.responseText ? JSON.parse(xhr.responseText) : 'No response');
-            }
-        });
-    
-        console.log('=== End Debug Info ===');
     });
     </script>
     <?php
