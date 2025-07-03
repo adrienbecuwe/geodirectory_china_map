@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GeoDirectory Chinese Maps & Markers Fix (Enhanced)
  * Description: Enhanced fix for marker visibility and clustering for Chinese map providers
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: GeoDirectory Team
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants
-define('GEODIR_CHINESE_MAPS_VERSION', '1.1.0');
+define('GEODIR_CHINESE_MAPS_VERSION', '1.1.1');
 define('GEODIR_CHINESE_MAPS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 /**
@@ -23,6 +23,14 @@ function geodir_chinese_maps_enhanced_init() {
     if (!class_exists('GeoDir_Admin')) {
         return;
     }
+    
+    // Include the Chinese Maps class
+    if (!class_exists('GeoDir_Chinese_Maps')) {
+        require_once GEODIR_CHINESE_MAPS_PLUGIN_DIR . 'class-geodir-map.php';
+    }
+    
+    // Initialize the Chinese Maps functionality
+    new GeoDir_Chinese_Maps();
     
     // Add Chinese map providers to GeoDirectory
     add_filter('geodir_map_providers', 'geodir_add_chinese_map_providers_enhanced');
@@ -1280,15 +1288,7 @@ function geodir_chinese_maps_enhanced_marker_script() {
             console.log('🌐 Fetching', ids.length, 'posts of type', postType);
             
             // GeoDirectory REST API endpoint
-            var apiUrl = window.location.origin + '/wp-json/geodir/v2/places';
-            if (postType === 'gd_event') {
-                apiUrl = window.location.origin + '/wp-json/geodir/v2/events';
-            } else if (postType === 'gd_gd_properties') {
-                apiUrl = window.location.origin + '/wp-json/geodir/v2/properties';
-            }
-            
-            console.log('🌐 API URL for', postType, ':', apiUrl);
-            
+            var apiUrl = window.location.origin + '/wp-json/geodir/v
             // Add post IDs as include parameter
             apiUrl += '?include=' + ids.join(',') + '&per_page=100';
             

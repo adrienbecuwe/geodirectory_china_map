@@ -1,6 +1,6 @@
 {
   "name": "geodir-chinese-maps",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "WordPress plugin to fix marker visibility and coordinate conversion for Chinese map providers in GeoDirectory",
   "main": "geodir-chinese-maps-enhanced.php",
   "keywords": [
